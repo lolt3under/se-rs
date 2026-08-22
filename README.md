@@ -48,6 +48,20 @@ $ printf 'tea 12\ncoffee 18\nwater 3\n' |
 
 Rust 1.85 or newer is required.
 
+Published releases can be installed from crates.io:
+
+```sh
+cargo install se-rs
+```
+
+On systems with Homebrew:
+
+```sh
+brew install lolt3under/tap/se
+```
+
+Until the first tagged release appears, build from a checkout:
+
 ```sh
 git clone https://github.com/lolt3under/se-rs.git
 cd se-rs
@@ -58,10 +72,6 @@ install -Dm755 target/release/se "$HOME/.local/bin/se"
 Use `sudo install -Dm755 target/release/se /usr/local/bin/se` for a system-wide
 installation. Linux and macOS support normal editing. The `-w` watch option uses
 kqueue and currently works only on macOS.
-
-There is no crates.io package yet. The `publish = false` guard in `Cargo.toml`
-is intentional and will remain until the package name, release process, and
-manual pages are settled.
 
 ## Synopsis
 
@@ -128,6 +138,8 @@ GitHub Wiki.
 - [Implementation status](docs/status.md) separates finished work from plans.
 - [Public release checklist](docs/release-checklist.md) covers the clean
   repository import, GitHub settings, tags, artifacts, and checksums.
+- [Maintainer release procedure](docs/releasing.md) documents crates.io,
+  GitHub Release, and Homebrew publication from `main`.
 
 ## Tests
 

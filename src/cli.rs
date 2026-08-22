@@ -1,7 +1,7 @@
 use clap::Parser;
 
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
+#[command(name = "se", version, about, long_about = None)]
 pub struct Cli {
     /// Edit files in place. With an attached extension (`-i=.bak`) the original
     /// is backed up first. The extension uses `=` so the program argument is

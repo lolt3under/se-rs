@@ -1,5 +1,5 @@
 [package]
-name = "se"
+name = "se-rs"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.85"
@@ -10,8 +10,12 @@ repository = "https://github.com/lolt3under/se-rs"
 license = "BSD-3-Clause"
 keywords = ["text", "regex", "grep", "sed", "awk"]
 categories = ["command-line-utilities", "text-processing"]
-exclude = ["/.github/", "/target/"]
-publish = false
+exclude = ["/.github/", "/packaging/", "/target/"]
+publish = ["crates-io"]
+
+[[bin]]
+name = "se"
+path = "src/main.rs"
 
 # Release builds favor throughput and a small binary. Benchmark results in
 # docs/performance.md use this profile.

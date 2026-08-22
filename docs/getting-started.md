@@ -13,6 +13,23 @@ $ rustc --version
 rustc 1.85.0 (or newer)
 ```
 
+## Install a release
+
+Cargo installs the package as the `se` command:
+
+```sh
+cargo install se-rs
+```
+
+Homebrew users can install the formula from the project tap:
+
+```sh
+brew install lolt3under/tap/se
+```
+
+These commands become available when the first tagged release has been
+published. Use a source checkout before then.
+
 ## Build from a checkout
 
 ```sh

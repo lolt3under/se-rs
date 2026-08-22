@@ -10,8 +10,8 @@ tagged releases. Check the command output; do not treat the list as ceremony.
 - [ ] Confirm the final GitHub owner and update `repository` in `Cargo.toml`,
   badge URLs, issue-template links, and clone commands if it is not
   `lolt3under/se-rs`.
-- [ ] Decide whether the package will remain source-only. `publish = false`
-  prevents accidental crates.io publication.
+- [x] Publish the crate as `se-rs` while retaining `se` as the binary name.
+  `publish = ["crates-io"]` prevents publication to an unintended registry.
 - [ ] Review `git diff --check` and every deletion. In particular, the old
   checkout tracked compiled files under `target/`.
 - [ ] Search the working tree for credentials, private host names, personal
@@ -62,9 +62,11 @@ git -C "$new_repo" ls-files | sort
   `awk`.
 - [ ] Enable Issues, Discussions only if someone will moderate them, and private
   vulnerability reporting.
-- [ ] Protect `main`. Require pull requests and the format/lint, Linux test,
+- [ ] Protect `main`. Require the format/lint, Linux test,
   macOS test, Rust 1.85, package, and RustSec checks. Also require resolved
-  review conversations and choose an intentional history policy.
+  review conversations and linear history. A mandatory approval is not useful
+  while the project has one maintainer, because it would make a maintainer's
+  own pull request unmergeable.
 - [ ] Prevent branch deletion and force pushes on `main`.
 - [ ] Enable dependency graph, Dependabot alerts, and secret scanning where the
   repository plan provides them.
@@ -117,14 +119,8 @@ On macOS, also exercise `-w` against a temporary file and stop it with Ctrl-C.
   the release notes.
 - [ ] Re-run benchmarks only if the release makes a performance claim. Record
   all environment details from `docs/performance.md`.
-- [ ] Commit the release change and create a signed annotated tag.
-
-```sh
-version=0.1.0
-git tag -s "v$version" -m "se $version"
-git tag -v "v$version"
-git push origin "v$version"
-```
+- [ ] Commit the release change and run the `Publish release` workflow from
+  `main`. See [the maintainer release procedure](releasing.md).
 
 ## Binary artifacts
 

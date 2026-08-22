@@ -27,6 +27,8 @@ The remaining pages are for checking claims and maintaining the project:
 - [Implementation status](status.md) says what is finished, partial, or absent.
 - [Public release checklist](release-checklist.md) covers the clean `se-rs`
   import, repository settings, artifacts, checksums, and tag verification.
+- [Maintainer release procedure](releasing.md) covers the guarded crates.io,
+  GitHub Release, and Homebrew workflow.
 - [Contributing](../CONTRIBUTING.md) gives the required checks and test layout.
 - [Security policy](../SECURITY.md) explains private reporting and the risks of
   in-place editing.

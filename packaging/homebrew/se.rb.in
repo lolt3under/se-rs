@@ -1,0 +1,19 @@
+class Se < Formula
+  desc "Structural text editor for searching and rewriting byte ranges"
+  homepage "https://github.com/lolt3under/se-rs"
+  url "https://static.crates.io/crates/se-rs/se-rs-@VERSION@.crate"
+  sha256 "@SHA256@"
+  license "BSD-3-Clause"
+  head "https://github.com/lolt3under/se-rs.git", branch: "main"
+
+  depends_on "rust" => :build
+
+  def install
+    system "cargo", "install", *std_cargo_args
+  end
+
+  test do
+    assert_equal "se #{version}", shell_output("#{bin}/se --version").strip
+    assert_equal "match\n", pipe_output("#{bin}/se '/match/'", "skip\nmatch\n")
+  end
+end

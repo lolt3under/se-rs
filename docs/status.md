@@ -89,14 +89,16 @@ General regex line filters still use the ordinary view pipeline. See
 
 The public release still needs decisions that should not be hidden in code:
 
-- settle the package name and remove `publish = false` only when crates.io
-  publishing is intended;
 - add native Linux watch support or keep `-w` explicitly platform-limited;
 - decide whether grep's unterminated-line behavior belongs in `p` or a distinct
   record-print action;
 - decide whether chained mutations should materialize intermediate views;
 - publish signed/tagged binaries for the supported platform matrix;
 - keep the compatibility ledger and manual synchronized with syntax changes.
+
+The crates.io package is named `se-rs`; it installs a binary named `se`.
+Publication to crates.io, GitHub Releases, and `lolt3under/homebrew-tap` is
+performed by the guarded release workflow documented in [releasing.md](releasing.md).
 
 None of these blocks source releases from GitHub. They do block calling the CLI
 or language stable.

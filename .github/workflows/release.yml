@@ -1,0 +1,182 @@
+name: Publish release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version from Cargo.toml, without the v prefix
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: crates.io, GitHub, and Homebrew
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - name: Check out se-rs
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Validate release request
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -n "$CARGO_REGISTRY_TOKEN" || {
+            echo 'CARGO_REGISTRY_TOKEN is not configured in the release environment' >&2
+            exit 1
+          }
+          test -n "$HOMEBREW_TAP_TOKEN" || {
+            echo 'HOMEBREW_TAP_TOKEN is not configured in the release environment' >&2
+            exit 1
+          }
+
+          manifest_version="$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1)"
+          test "$RELEASE_VERSION" = "$manifest_version" || {
+            echo "requested version $RELEASE_VERSION does not match Cargo.toml ($manifest_version)" >&2
+            exit 1
+          }
+          if [[ ! "$RELEASE_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "release version must be a dotted numeric SemVer version" >&2
+            exit 1
+          fi
+
+          git fetch origin main
+          test "$GITHUB_SHA" = "$(git rev-parse origin/main)" || {
+            echo 'the selected commit is not the current main branch head' >&2
+            exit 1
+          }
+
+      - name: Check out Homebrew tap
+        uses: actions/checkout@v6
+        with:
+          repository: lolt3under/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Verify Homebrew tap access
+        run: git -C homebrew-tap push --dry-run origin HEAD:main
+
+      - name: Format
+        run: cargo fmt --all -- --check
+
+      - name: Lint
+        run: cargo clippy --all-targets --all-features --locked -- -D warnings
+
+      - name: Test
+        run: cargo test --all-targets --all-features --locked
+
+      - name: Build crate archive
+        id: package
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo package --locked
+          mkdir -p dist
+          crate="se-rs-${RELEASE_VERSION}.crate"
+          cp "target/package/$crate" "dist/$crate"
+          sha256="$(shasum -a 256 "dist/$crate" | awk '{print $1}')"
+          printf '%s  %s\n' "$sha256" "$crate" > dist/SHA256SUMS
+          printf 'crate_sha256=%s\n' "$sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Publish crate
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          CRATE_SHA256: ${{ steps.package.outputs.crate_sha256 }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          metadata="$(mktemp)"
+          status="$(curl -sS -o "$metadata" -w '%{http_code}' \
+            "https://crates.io/api/v1/crates/se-rs/${RELEASE_VERSION}")"
+
+          case "$status" in
+            200)
+              published_sha="$(jq -r '.version.checksum' "$metadata")"
+              test "$published_sha" = "$CRATE_SHA256" || {
+                echo 'crates.io already has this version with a different checksum' >&2
+                exit 1
+              }
+              echo "se-rs $RELEASE_VERSION is already published with the expected checksum"
+              ;;
+            404)
+              cargo publish --locked
+              ;;
+            *)
+              echo "crates.io returned HTTP $status during the publication check" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="v${RELEASE_VERSION}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            git fetch origin "refs/tags/$tag:refs/tags/$tag"
+            test "$(git rev-list -n 1 "$tag")" = "$GITHUB_SHA" || {
+              echo "$tag already points to a different commit" >&2
+              exit 1
+            }
+            gh release upload "$tag" dist/* --clobber
+          else
+            gh release create "$tag" dist/* \
+              --target "$GITHUB_SHA" \
+              --title "se $RELEASE_VERSION" \
+              --generate-notes
+          fi
+
+      - name: Update Homebrew formula
+        env:
+          FORMULA_SHA256: ${{ steps.package.outputs.crate_sha256 }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p homebrew-tap/Formula
+          ruby -e '
+            template = File.read("packaging/homebrew/se.rb.in")
+            formula = template
+              .gsub("@VERSION@", ENV.fetch("RELEASE_VERSION"))
+              .gsub("@SHA256@", ENV.fetch("FORMULA_SHA256"))
+            abort "unexpanded formula placeholder" if formula.include?("@VERSION@") || formula.include?("@SHA256@")
+            File.write("homebrew-tap/Formula/se.rb", formula)
+          '
+          ruby -c homebrew-tap/Formula/se.rb
+          git -C homebrew-tap diff --check
+
+          git -C homebrew-tap config user.name lolt3under
+          git -C homebrew-tap config user.email 96406281+lolt3under@users.noreply.github.com
+          git -C homebrew-tap add Formula/se.rb
+          if git -C homebrew-tap diff --cached --quiet; then
+            echo 'Homebrew formula is already current'
+          else
+            git -C homebrew-tap commit -m "se $RELEASE_VERSION"
+            git -C homebrew-tap push origin HEAD:main
+          fi

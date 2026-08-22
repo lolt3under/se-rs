@@ -32,6 +32,14 @@ fn stdout(program: &str, input: &str) -> String {
     o
 }
 
+#[test]
+fn version_uses_the_command_name() {
+    let (out, err, code) = run(&["--version"], "");
+    assert_eq!(code, 0);
+    assert_eq!(out, concat!("se ", env!("CARGO_PKG_VERSION"), "\n"));
+    assert!(err.is_empty());
+}
+
 // ---------------------------------------------------------------- selectors
 
 #[test]
