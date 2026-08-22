@@ -11,7 +11,7 @@ repository = "https://github.com/lolt3under/se-rs"
 license = "BSD-3-Clause"
 keywords = ["text", "regex", "grep", "sed", "awk"]
 categories = ["command-line-utilities", "text-processing"]
-exclude = ["/.github/", "/packaging/", "/target/"]
+exclude = ["/.github/", "/homebrew-tap/", "/packaging/", "/target/"]
 publish = ["crates-io"]
 
 [[bin]]
