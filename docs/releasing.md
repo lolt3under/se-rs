@@ -13,11 +13,12 @@ Create a crates.io API token authorized to publish `se-rs`. Store it in the
 `release` environment as `CARGO_REGISTRY_TOKEN`. Do not put the token in a
 shell profile, workflow file, issue, or command history.
 
-Create a fine-grained GitHub personal access token with access only to
-`lolt3under/homebrew-tap` and its **Contents: Read and write** permission. Store
-it in the same environment as `HOMEBREW_TAP_TOKEN`. The upstream workflow needs
-this separate credential because its normal `GITHUB_TOKEN` cannot write to a
-different repository.
+The Homebrew tap uses a dedicated Ed25519 deploy key. Its public half is the
+write-enabled `se-rs release workflow` deploy key on
+`lolt3under/homebrew-tap`; its private half is stored as
+`HOMEBREW_TAP_SSH_KEY` in the `release` environment. It has no access to other
+repositories or account settings. To rotate it, add and verify the replacement
+key before deleting the old one.
 
 The workflow checks both secrets and verifies write access to the tap before
 it runs `cargo publish`. A missing or under-scoped credential therefore stops
