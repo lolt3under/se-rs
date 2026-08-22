@@ -15,8 +15,7 @@ once a stable release exists.
 
 ### Changed
 
-- Prepared the source tree, package metadata, tests, and documentation for the
-  first public release.
+- Added package metadata, tests, and user documentation for version 0.1.0.
 - Updated `anyhow` and `memmap2` to releases that address their current RustSec
   unsoundness advisories.
 

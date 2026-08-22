@@ -1,4 +1,5 @@
 use clap::Parser;
+use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(name = "se", version, about, long_about = None)]
@@ -21,11 +22,22 @@ pub struct Cli {
     #[arg(short = 'w', default_value_t = false)]
     pub watch: bool,
 
+    /// Write the se(1) manual source to standard output.
+    #[arg(long, default_value_t = false, conflicts_with = "install_man")]
+    pub print_man: bool,
+
+    /// Install se(1) under DIR, or under the user data directory when omitted.
+    #[arg(long, value_name = "DIR", num_args = 0..=1)]
+    pub install_man: Option<Option<PathBuf>>,
+
     /// Pipeline script to execute (e.g. "x/error/ p"). A program that *begins*
     /// with the `-` collapse operator must be preceded by `--` so clap does not
     /// read it as an option, e.g. `se -- '- p' file`.
-    #[arg(name = "PROGRAM")]
-    pub program: String,
+    #[arg(
+        name = "PROGRAM",
+        required_unless_present_any = ["print_man", "install_man"]
+    )]
+    pub program: Option<String>,
 
     /// Input file paths
     #[arg(name = "FILE", required = false)]

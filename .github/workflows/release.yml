@@ -93,6 +93,7 @@ jobs:
         run: |
           set -euo pipefail
           cargo package --locked
+          cargo package --locked --list | awk '$0 == "man/se.1" { found=1 } END { exit !found }'
           mkdir -p dist
           crate="se-rs-${RELEASE_VERSION}.crate"
           cp "target/package/$crate" "dist/$crate"

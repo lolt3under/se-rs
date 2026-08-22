@@ -54,3 +54,5 @@ jobs:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo package --locked
+      - name: Check packaged manual
+        run: cargo package --locked --list | awk '$0 == "man/se.1" { found=1 } END { exit !found }'

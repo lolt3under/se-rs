@@ -34,7 +34,8 @@ of the following:
    changed, `cargo check` followed by a review of the lockfile diff.
 3. Move the relevant `CHANGELOG.md` entries from `Unreleased` to a heading for
    the version and release date.
-4. Run the commands in [the public release checklist](release-checklist.md).
+4. Run the test, lint, audit, and package commands in
+   [CONTRIBUTING.md](../CONTRIBUTING.md).
 5. Merge only after every required check succeeds on the current pull-request
    head.
 
@@ -67,18 +68,20 @@ Replace `0.1.0` below with the released version:
 ```sh
 cargo install se-rs --version 0.1.0 --locked
 se --version
+se --install-man
 printf 'skip\nmatch\n' | se '/match/'
 
 brew update
 brew install lolt3under/tap/se
 brew test lolt3under/tap/se
 brew audit --strict lolt3under/tap/se
+man se
 ```
 
 Check that the output of `se --version` is `se 0.1.0` and that the search prints
 `match`. Then verify that the GitHub Release contains the `.crate` archive and
 `SHA256SUMS`, and that `Formula/se.rb` in the tap contains the same version and
-digest.
+digest. The Homebrew installation must also contain `share/man/man1/se.1`.
 
 ## Re-running a failed release
 

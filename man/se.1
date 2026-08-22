@@ -1,0 +1,542 @@
+.Dd August 23, 2026
+.Dt SE 1
+.Os
+.Sh NAME
+.Nm se
+.Nd search and rewrite structural byte ranges
+.Sh SYNOPSIS
+.Nm
+.Op Fl E
+.Op Fl n
+.Op Fl i Ns Op = Ns Ar suffix
+.Op Fl w
+.Ar program
+.Op Ar file ...
+.Nm
+.Fl -print-man
+.Nm
+.Fl -install-man Ns Op = Ns Ar directory
+.Sh DESCRIPTION
+.Nm
+is a structural text editor.
+It runs a small command language over byte ranges called views.
+A view may be a line, a regular-expression match, a field, a quoted string,
+a balanced bracketed range, or the complete input.
+Commands select views, reject views, print them, or record replacements.
+.Pp
+With no
+.Ar file ,
+.Nm
+reads standard input.
+Named files are processed in argument order.
+A program beginning with
+.Ql /
+is applied as a predicate to line views.
+Every other program begins with one view spanning the complete input.
+.Pp
+Selectors do not print by themselves.
+Use
+.Cm p
+to print a view or
+.Cm =
+to print its byte coordinates.
+A mutating program writes the transformed document after all commands have
+finished.
+.Sh OPTIONS
+.Bl -tag -width Ds
+.It Fl E
+Accepted for compatibility.
+Extended regular-expression syntax is already enabled.
+.It Fl i Ns Op = Ns Ar suffix
+Rewrite each named file atomically.
+Standard input is not allowed with this option.
+When
+.Ar suffix
+is present, copy the original to
+.Pa file Ns Ar suffix
+before replacing it.
+.It Fl n
+Accepted for sed compatibility.
+.Nm
+does not print implicitly, so this option does not change output.
+.It Fl w
+Run the program again when a named file changes.
+The current watcher uses kqueue and is available on macOS only.
+.It Fl -print-man
+Write the roff source of this manual to standard output and exit.
+.It Fl -install-man Ns Op = Ns Ar directory
+Install
+.Pa se.1
+under
+.Ar directory .
+Without a directory, use
+.Pa $XDG_DATA_HOME/man/man1
+or
+.Pa $HOME/.local/share/man/man1 .
+.It Fl -
+End option parsing.
+Use this before a
+.Ar program
+whose first command is the collapse operator
+.Cm - .
+.El
+.Sh PROGRAM MODEL
+Commands are separated by whitespace or semicolons.
+Whitespace inside a delimited pattern or an awk block belongs to that
+construct.
+The initial view is normally the complete input.
+Selectors replace the current view stream with another stream.
+Blocks run a nested program for each incoming view.
+Mutations retain absolute byte coordinates and are applied to the original
+input after execution.
+.Pp
+Two rules account for most command behavior:
+.Bl -enum -compact
+.It
+Reporting pipelines need
+.Cm p
+or
+.Cm = .
+.It
+Mutating pipelines write the document and normally should not end in
+.Cm p .
+.El
+.Sh PATTERNS
+A pattern command uses the next character as its delimiter.
+The slash is conventional but not special.
+.Bd -literal -offset indent
+x/pattern/
+s/pattern/replacement/
+s#path/with/slashes#replacement#
+.Ed
+.Pp
+Escape a delimiter inside a field with a backslash.
+Patterns use the regex-automata syntax: literals, alternation, groups,
+repetition, ASCII and Unicode classes, named captures, word boundaries, and
+inline flags are supported.
+Look-around and pattern backreferences are not supported.
+Replacement references are handled separately and are supported.
+.Pp
+The following flags follow the closing delimiter:
+.Bl -tag -width Ds
+.It Cm i , I
+Case-insensitive matching.
+.It Cm s
+Allow dot to match a newline.
+.It Cm g
+For
+.Cm s ,
+replace all eligible matches in each view.
+.It Cm m , M
+Accepted; line anchors are multiline by default.
+.It Ar number
+For
+.Cm s ,
+begin with that one-based occurrence.
+.El
+.Sh SELECTORS
+.Bl -tag -width Ds
+.It Cm x/re/
+Replace each input view with its non-overlapping matches.
+.It Cm y/re/ , z/re/
+Split each view at matches and keep the non-empty gaps.
+.It Cm g/re/
+Keep a view when it contains a match.
+.It Cm v/re/
+Reject a view when it contains a match.
+.It Cm ~k/literal/
+Keep views containing a substring within Levenshtein distance
+.Ar k
+of the literal.
+.It Cm :sem:/concept/
+Keep views matching a small built-in related-term lexicon.
+An unknown concept becomes a case-insensitive substring search.
+.El
+.Sh MUTATIONS
+.Bl -tag -width Ds
+.It Cm c/text/
+Replace each complete view with literal text.
+Use
+.Cm c//
+to delete a selected view.
+.It Cm s/re/replacement/flags
+Replace the first match in each view unless a global or numeric flag says
+otherwise.
+.El
+.Pp
+Replacement fields understand these forms:
+.Bl -tag -width Ds -compact
+.It Cm $0 , ${0} , & , \e0
+The complete match.
+.It Cm $1 No through Cm $99 , ${12}
+A numbered capture.
+.It Cm $name , ${name}
+A named capture.
+.It Cm \e1 No through Cm \e9
+A sed-style numbered capture.
+.It Cm $$
+A literal dollar sign.
+.It Cm \e&
+A literal ampersand.
+.It Cm \en , \et , \er , \e\e , \exNN
+Control characters, a backslash, or one byte written in hexadecimal.
+.El
+.Sh ACTIONS AND CONTROL
+.Bl -tag -width Ds
+.It Cm p
+Print each view.
+Add a newline when the view does not already end in one.
+.It Cm =
+Print
+.Dq start,end,length
+using zero-based, half-open byte coordinates.
+.It Cm { program }
+Run a nested program for every incoming view.
+.It Cm /re/ { program }
+Run the block on matching line views and pass other lines through unchanged.
+Without a block, print matching lines.
+.It Cm m/re/ { program }
+Extract every match and run the block on each match in order.
+.It Cm t { program }
+Run the block if a previous substitution changed its view.
+The test consumes the change flag.
+.It Cm N
+Join adjacent pairs of views.
+An odd final view passes through unchanged.
+.It Cm r/separator/
+Reduce all current views to one value separated by literal
+.Ar separator .
+.It Cm +
+Widen a view to the smallest enclosing balanced bracket range.
+.It Cm -
+Replace a view with the contents of its first balanced bracket pair.
+.It Cm @{ awk-program }
+Run the bundled awk action with each incoming view as one record.
+.El
+.Sh AWK ACTION
+The awk action is intended for fields, counters, arrays, arithmetic, and
+formatted reports after structural selection.
+It supports
+.Cm BEGIN
+and
+.Cm END
+blocks, ordinary statements, fields
+.Cm $0
+through
+.Cm $NF ,
+computed fields, variables, associative arrays, and control flow.
+.Pp
+The predefined record values are
+.Cm NR
+and
+.Cm NF .
+The field and output separators are
+.Cm FS , OFS ,
+and
+.Cm ORS .
+A default
+.Cm FS
+of one space splits on runs of Unicode whitespace and trims the ends.
+A one-character or multi-character separator is literal.
+.Pp
+Supported control statements are
+.Cm if , else , while , for , break , continue ,
+and
+.Cm next .
+Associative arrays may be traversed with
+.Ql for (key in array) .
+Supported string functions include
+.Cm length , substr , index , tolower , toupper , split ,
+and
+.Cm sprintf .
+Numeric functions include
+.Cm sin , cos , atan2 , exp , log , sqrt , int , rand ,
+and
+.Cm srand .
+.Pp
+This is not a complete POSIX awk.
+It does not implement regex-valued expressions, user functions,
+.Cm getline ,
+redirection, or the full set of special variables.
+Use a full awk implementation when a program needs those features.
+.Sh LINE RECORDS
+Use
+.Ql x/.*\en?/
+for ordinary Unix line records.
+The optional newline keeps a final unterminated record.
+Use
+.Ql x/.*\en/
+only when unterminated final bytes should be ignored.
+.Pp
+For CRLF data, a line view ends in carriage return and newline.
+Patterns anchored at the end commonly need
+.Ql \er?$
+to accept both LF and CRLF.
+.Sh ENVIRONMENT
+.Bl -tag -width Ds
+.It Ev XDG_DATA_HOME
+Base directory used by
+.Fl -install-man
+when no destination is supplied.
+.It Ev HOME
+Used for
+.Pa $HOME/.local/share/man/man1
+when
+.Ev XDG_DATA_HOME
+is unset.
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa $XDG_DATA_HOME/man/man1/se.1
+Default per-user manual path when
+.Ev XDG_DATA_HOME
+is set.
+.It Pa $HOME/.local/share/man/man1/se.1
+Default per-user manual path otherwise.
+.El
+.Sh EXIT STATUS
+.Ex -std se
+A successful no-match search exits zero and prints nothing.
+This differs from grep, where status 1 means no selected lines.
+Parse errors, invalid regular expressions, input errors, and runtime awk errors
+produce a non-zero status and a diagnostic on standard error.
+.Sh EXAMPLES
+.Ss Find lines
+.\" tested: readme.search
+.Bd -literal -offset indent
+$ printf 'ready\enERROR disk full\enretry\en' | se '/error/i'
+ERROR disk full
+.Ed
+.Pp
+Reject matching lines by making line records explicit:
+.\" tested: grep.invert
+.Bd -literal -offset indent
+$ printf '# heading\envalue=1\en\envalue=2\en' |
+> se 'x/.*\en?/ v/^#/ p'
+value=1
+
+value=2
+.Ed
+.Pp
+Print only matching parts:
+.\" tested: grep.matches
+.Bd -literal -offset indent
+$ printf 'from a@example.org to bob.smith@example.net\en' |
+> se 'x/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\e.[A-Za-z]{2,}/ p'
+a@example.org
+bob.smith@example.net
+.Ed
+.Pp
+Count matching lines after filtering:
+.\" tested: grep.count
+.Bd -literal -offset indent
+$ printf 'ok\enerror one\enERROR two\en' |
+> se 'x/.*\en?/ g/error/i @{ END { print NR } }'
+2
+.Ed
+.Pp
+Print match byte offsets:
+.\" tested: grep.offset
+.Bd -literal -offset indent
+$ printf 'a needle and needle\en' | se 'x/needle/ ='
+2,8,6
+13,19,6
+.Ed
+.Pp
+Find a NUL byte without printing it:
+.\" tested: grep.nul
+.Bd -literal -offset indent
+$ printf 'left\e0right' | se 'x/\ex00/ ='
+4,5,1
+.Ed
+.Ss Rewrite text
+Replace every occurrence in the complete input:
+.\" tested: sed.global
+.Bd -literal -offset indent
+$ printf 'foo foo\enfoo\en' | se 's/foo/bar/g'
+bar bar
+bar
+.Ed
+.Pp
+Replace the first occurrence on each line:
+.\" tested: sed.first_each_line
+.Bd -literal -offset indent
+$ printf 'foo foo\enfoo foo\en' |
+> se 'x/.*\en?/ { s/foo/bar/ }'
+bar foo
+bar foo
+.Ed
+.Pp
+Use another delimiter for slash-heavy paths:
+.\" tested: sed.path
+.Bd -literal -offset indent
+$ printf 'PATH=/usr/local/bin:/usr/local/sbin\en' |
+> se 's#/usr/local#/opt/se#g'
+PATH=/opt/se/bin:/opt/se/sbin
+.Ed
+.Pp
+Reorder capture groups:
+.\" tested: sed.capture
+.Bd -literal -offset indent
+$ printf 'from 2026-08-22 to 2026-09-01\en' |
+> se 's/([0-9]{4})-([0-9]{2})-([0-9]{2})/$3\e/$2\e/$1/g'
+from 22/08/2026 to 01/09/2026
+.Ed
+.Pp
+Redact simple key-value fields:
+.\" tested: sed.redact
+.Bd -literal -offset indent
+$ printf 'token=abc&user=7 password=hunter2\en' |
+> se 's/(token|password)=[^ &\en]+/$1=REDACTED/g'
+token=REDACTED&user=7 password=REDACTED
+.Ed
+.Pp
+Delete comments and blank lines:
+.\" tested: sed.delete
+.Bd -literal -offset indent
+$ printf '# comment\en\enport=8080\en  # note\enhost=localhost\en' |
+> se 'x/.*\en?/ { g/^\es*(#|$)/ c// }'
+port=8080
+host=localhost
+.Ed
+.Pp
+Edit only addressed lines:
+.\" tested: sed.address
+.Bd -literal -offset indent
+$ printf 'stable enabled=true\endeprecated enabled=true\en' |
+> se '/deprecated/ { s/enabled=true/enabled=false/g }'
+stable enabled=true
+deprecated enabled=false
+.Ed
+.Pp
+Replace a section spanning several lines:
+.\" tested: sed.multiline
+.Bd -literal -offset indent
+$ printf 'keep\enBEGIN\ensecret\enEND\enkeep\en' |
+> se 's/BEGIN.*END/[section removed]/s'
+keep
+[section removed]
+keep
+.Ed
+.Ss Field reports
+Print the record number, field count, first field, and last field:
+.\" tested: awk.fields
+.Bd -literal -offset indent
+$ printf 'alpha beta gamma\enone two\en' |
+> se 'x/.*\en?/ @{ print NR, NF, $1, $NF }'
+1 3 alpha gamma
+2 2 one two
+.Ed
+.Pp
+Sum a column:
+.\" tested: awk.sum
+.Bd -literal -offset indent
+$ printf 'apples 12\enpears 8\enplums 5\en' |
+> se 'x/.*\en?/ @{ sum += $2 END { print sum } }'
+25
+.Ed
+.Pp
+Compute an average with a fixed format:
+.\" tested: awk.average
+.Bd -literal -offset indent
+$ printf 'a 10\enb 20\enc 25\en' |
+> se 'x/.*\en?/ @{ sum += $2 END { printf "%.2f\en", sum/NR } }'
+18.33
+.Ed
+.Pp
+Count named categories:
+.\" tested: awk.count
+.Bd -literal -offset indent
+$ printf 'GET /\enPOST /login\enGET /health\enGET /\en' |
+> se 'x/.*\en?/ @{ count[$1]++ END { print count["GET"], count["POST"] } }'
+3 1
+.Ed
+.Pp
+Find the minimum and maximum without assuming zero is in the data:
+.\" tested: awk.minmax
+.Bd -literal -offset indent
+$ printf '%s\en' -4 12 3 -9 |
+> se 'x/.*\en?/ @{ if (NR==1 || $1<min) min=$1; if (NR==1 || $1>max) max=$1 END { print min, max } }'
+-9 12
+.Ed
+.Ss Structural selection
+Select the bracketed object containing a key:
+.\" tested: structural.json
+.Bd -literal -offset indent
+$ printf '{"server":{"timeout":30,"retry":2},"client":{"retry":1}}\en' |
+> se 'x/timeout/ + p'
+{"timeout":30,"retry":2}
+.Ed
+.Pp
+Find likely misspellings within edit distance two:
+.\" tested: structural.fuzzy
+.Bd -literal -offset indent
+$ printf 'kubernetes\enkubernets\enkuberntes\endocker\en' |
+> se 'x/.*\en?/ ~2/kubernetes/ p'
+kubernetes
+kubernets
+kuberntes
+.Ed
+.Pp
+Search the built-in network concept:
+.\" tested: structural.semantic
+.Bd -literal -offset indent
+$ printf 'CPU is hot\enDNS lookup failed\ensocket closed\en' |
+> se 'x/.*\en?/ :sem:/network/ p'
+DNS lookup failed
+socket closed
+.Ed
+.Sh FILE SELECTION
+.Nm
+does not traverse directories or read ignore files.
+Pass named files directly, use
+.Xr find 1
+with
+.Cm -exec ,
+or use
+.Xr rg 1
+with
+.Cm --files -0
+and a NUL-safe shell loop.
+The command does not add file-name prefixes to output.
+.Pp
+Decompress archives before passing them to standard input, for example with
+.Xr gzip 1
+or
+.Xr xz 1 .
+An in-place edit cannot operate on a decompression pipeline.
+.Sh IN-PLACE EDITS
+Use a backup suffix on the first pass:
+.\" integration-tested: cli.in_place_edit_with_backup
+.Bd -literal -offset indent
+$ se -i=.bak 's/old/new/g' config
+$ cat config.bak config
+old=1
+new=1
+.Ed
+.Pp
+The replacement is written to a sibling temporary file, synchronized, and
+renamed over the original.
+The original file mode is preserved.
+A file with no mutations is left untouched.
+.Sh LIMITATIONS
+The regular-expression engine does not support look-around or pattern
+backreferences.
+Tree navigation counts brackets and does not parse strings or comments.
+The concept selector uses a static lexicon, not contextual classification.
+Recursive traversal, file-name labels, source line numbers, surrounding
+context, and grep's three-state exit contract remain jobs for other tools.
+The awk action omits several POSIX and GNU awk features described above.
+.Sh SEE ALSO
+.Xr awk 1 ,
+.Xr grep 1 ,
+.Xr rg 1 ,
+.Xr sed 1
+.Pp
+The complete manual and compatibility notes are maintained at
+.Lk https://github.com/lolt3under/se-rs .
+.Sh AUTHORS
+.An lolt3under
+.Pp
+Developer website:
+.Lk https://xer0x.in

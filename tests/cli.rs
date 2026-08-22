@@ -106,7 +106,7 @@ fn fused_grep_match_at_start_and_blank_lines() {
 #[test]
 fn fused_grep_drops_newlineless_tail_under_required_newline() {
     // `.*\n` requires a terminating newline, so an unterminated final line is
-    // not a "line" and a match there is dropped — identical to the old pipeline.
+    // not a "line" and a match there is dropped, matching the unfused pipeline.
     assert_eq!(stdout("x/.*\\n/ g/x/ p", "ax\nbx"), "ax\n");
 }
 
