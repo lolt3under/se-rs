@@ -292,7 +292,7 @@ mod tests {
         assert_eq!(memchr(b'\n', b"abc\ndef"), Some(3));
         assert_eq!(memchr(b'\n', b"abcdef"), None);
         // Spans past a NEON block boundary.
-        let hay: Vec<u8> = std::iter::repeat_n(b'x', 40).chain([b'\n']).collect();
+        let hay: Vec<u8> = std::iter::repeat_n(b'x', 40).chain(*b"\n").collect();
         assert_eq!(memchr(b'\n', &hay), Some(40));
     }
 
