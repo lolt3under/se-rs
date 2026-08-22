@@ -1,0 +1,16 @@
+# Rust build output
+/target/
+*.pdb
+
+# Editor and operating-system files
+*~
+*.swp
+*.swo
+.DS_Store
+.idea/
+.vscode/
+
+# Local benchmark output
+*.rs.bk
+perf.data*
+flamegraph.svg

@@ -1,0 +1,37 @@
+[package]
+name = "se"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+description = "A structural text editor for searching and rewriting byte ranges"
+authors = ["lolt3under <96406281+lolt3under@users.noreply.github.com>"]
+readme = "README.md"
+repository = "https://github.com/lolt3under/se-rs"
+license = "BSD-3-Clause"
+keywords = ["text", "regex", "grep", "sed", "awk"]
+categories = ["command-line-utilities", "text-processing"]
+exclude = ["/.github/", "/target/"]
+publish = false
+
+# Release builds favor throughput and a small binary. Benchmark results in
+# docs/performance.md use this profile.
+[profile.release]
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+opt-level = 3
+strip = "debuginfo"
+
+[dependencies]
+# File mapping, platform hints, the stdin spill buffer, and atomic rewrites.
+memmap2 = "0.9.11"
+libc = "0.2"
+tempfile = "3.27.0"
+
+# Matching. Literal patterns use the local SIMD scanner; other patterns use
+# regex-automata.
+regex-automata = { version = "0.4", features = ["std", "perf", "syntax", "meta"] }
+
+# Command-line parsing and error propagation.
+clap = { version = "4.5", features = ["derive"] }
+anyhow = "1.0.103"

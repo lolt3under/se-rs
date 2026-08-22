@@ -1,0 +1,34 @@
+name: Bug report
+description: Report incorrect output, a crash, or a diagnostic problem
+title: "bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Please reduce text-processing bugs to exact bytes whenever possible.
+  - type: input
+    id: version
+    attributes:
+      label: se version
+      description: Paste the output of `se --version`.
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: Operating system and architecture
+      placeholder: Arch Linux x86_64, macOS arm64, ...
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction
+      description: Include the input, exact command, output, exit status, and expected output.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional notes
+      description: Mention NUL bytes, a missing final newline, `-i`, or `-w` if relevant.

@@ -1,0 +1,22 @@
+name: Feature request
+description: Propose a command-language or platform feature
+title: "request: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: task
+    attributes:
+      label: Text-processing task
+      description: Show the input and the result you need. Existing grep, rg, sed, or awk syntax is useful context.
+    validations:
+      required: true
+  - type: textarea
+    id: syntax
+    attributes:
+      label: Possible se spelling
+      description: Optional. Explain how it composes with existing commands.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Current workaround
+      description: Show how you solve the task today.
