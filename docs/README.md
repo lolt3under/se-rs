@@ -25,10 +25,9 @@ The remaining pages are for checking claims and maintaining the project:
 - [Performance notes](performance.md) include the machine, data set, commands,
   and caveats behind each number.
 - [Implementation status](status.md) says what is finished, partial, or absent.
-- [Public release checklist](release-checklist.md) covers the clean `se-rs`
-  import, repository settings, artifacts, checksums, and tag verification.
 - [Maintainer release procedure](releasing.md) covers the guarded crates.io,
   GitHub Release, and Homebrew workflow.
+- [`se(1)`](../man/se.1) is the installed manual page.
 - [Contributing](../CONTRIBUTING.md) gives the required checks and test layout.
 - [Security policy](../SECURITY.md) explains private reporting and the risks of
   in-place editing.
@@ -56,11 +55,12 @@ The words must, should, and may have the usual manual-page force:
 ## Tested examples
 
 Every `se` transcript that states exact output in the README and the four main
-guide pages has a marker of the form `<!-- tested: family.name -->`.
-`tests/documentation.rs` contains the input bytes and expected output for the
-same identifier. CI fails if either side has an identifier the other side
-lacks. Installation, traversal, and release commands are checked separately
-because their results depend on the local filesystem and installed tools.
+guide pages has a marker of the form `<!-- tested: family.name -->`. The
+installed manual uses the equivalent roff comment. `tests/documentation.rs`
+contains the input bytes and expected output for the same identifier. CI fails
+if a documentation marker has no executable case. Installation, traversal,
+and release commands are checked separately because their results depend on
+the local filesystem and installed tools.
 
 That check is intentionally plain. Documentation for a text editor should not
 depend on a Markdown parser deciding whether a fence is executable. The marker

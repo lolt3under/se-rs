@@ -19,13 +19,23 @@ Cargo installs the package as the `se` command:
 
 ```sh
 cargo install se-rs
+se --install-man
 ```
+
+Cargo installs executable targets but does not copy ancillary files into a
+manual directory. The second command writes the manual bundled in `se` to
+`$XDG_DATA_HOME/man/man1/se.1`, or to
+`$HOME/.local/share/man/man1/se.1` when `XDG_DATA_HOME` is unset. Pass an
+explicit directory with `se --install-man=/usr/local/share/man/man1` if the
+system manual tree is preferred and writable.
 
 Homebrew users can install the formula from the project tap:
 
 ```sh
 brew install lolt3under/tap/se
 ```
+
+The Homebrew formula installs `se(1)` automatically.
 
 These commands become available when the first tagged release has been
 published. Use a source checkout before then.
@@ -51,6 +61,13 @@ under `/usr/local/bin`:
 
 ```sh
 sudo install -m755 target/release/se /usr/local/bin/se
+```
+
+Install the manual from the checkout with either of these forms:
+
+```sh
+se --install-man
+install -Dm644 man/se.1 "$HOME/.local/share/man/man1/se.1"
 ```
 
 The repository does not force `target-cpu=native`. Distribution binaries should

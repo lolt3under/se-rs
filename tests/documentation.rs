@@ -1,4 +1,4 @@
-//! Executable examples used by README.md and the guide under docs/.
+//! Executable examples used by README.md, se(1), and the guide under docs/.
 //!
 //! Every documented command carries a tested marker. The second test in this
 //! file checks that the marker set and this table stay identical.
@@ -461,4 +461,33 @@ fn documentation_markers_match_the_executable_cases() {
     );
     let expected: BTreeSet<String> = expected.into_iter().map(str::to_owned).collect();
     assert_eq!(found, expected, "documentation marker set is out of sync");
+}
+
+#[test]
+fn manpage_markers_reference_executable_cases() {
+    let known: BTreeSet<&str> = CASES.iter().map(|case| case.id).collect();
+    let text = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/man/se.1"))
+        .expect("read man/se.1");
+    let markers: Vec<&str> = text
+        .lines()
+        .filter_map(|line| line.strip_prefix(r#".\" tested: "#))
+        .collect();
+    let unique: BTreeSet<&str> = markers.iter().copied().collect();
+
+    assert_eq!(markers.len(), unique.len(), "duplicate se(1) test marker");
+    assert_eq!(
+        markers.len(),
+        22,
+        "unexpected number of tested se(1) examples"
+    );
+    for marker in markers {
+        assert!(
+            known.contains(marker),
+            "unknown se(1) test marker: {marker}"
+        );
+    }
+    assert!(
+        text.contains(r#".\" integration-tested: cli.in_place_edit_with_backup"#),
+        "the in-place example must name its integration test"
+    );
 }

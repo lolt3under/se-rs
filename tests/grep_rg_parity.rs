@@ -2,13 +2,12 @@
 //!
 //! Every expected value in this file was produced by running the REAL reference
 //! tool (BSD `/usr/bin/grep` or ripgrep 15.2.0) on the given input and capturing
-//! its bytes. See `tests/scripts/compat_live.sh` for the interactive harness and
-//! `/tmp/gen_cases.py` (dev-only) for how these were generated. They are
-//! therefore reference-derived, byte-exact, and non-tautological: they assert
+//! its bytes. See `tests/scripts/compat_live.sh` for the interactive harness.
+//! The expectations are reference-derived and byte-exact: they assert
 //! that `se`'s equivalent program matches what grep/ripgrep actually output,
 //! trailing newline included.
 //!
-//! Distinct from `tests/compatibility.rs`, whose expected values are pinned to
+//! This differs from `tests/compatibility.rs`, whose expected values are pinned to
 //! specific upstream GNU/ripgrep commit snapshots. This file tracks the locally
 //! installed tools and specifically guards the fused line-filter fast paths
 //! (`LineFilterCommand` for case-sensitive literals, `RegexLineFilterCommand`

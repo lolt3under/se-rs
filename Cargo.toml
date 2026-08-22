@@ -6,6 +6,7 @@ rust-version = "1.85"
 description = "A structural text editor for searching and rewriting byte ranges"
 authors = ["lolt3under <96406281+lolt3under@users.noreply.github.com>"]
 readme = "README.md"
+homepage = "https://xer0x.in"
 repository = "https://github.com/lolt3under/se-rs"
 license = "BSD-3-Clause"
 keywords = ["text", "regex", "grep", "sed", "awk"]

@@ -10,16 +10,33 @@ use crate::core::MmapSource;
 use crate::core::{ByteView, ExecutionContext, Mutation};
 use clap::Parser as ClapParser;
 use std::io::{self, Write};
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
+
+const MAN_PAGE: &[u8] = include_bytes!("../man/se.1");
 
 fn main() -> anyhow::Result<()> {
     let args = cli::Cli::parse();
 
-    let mut base_pipeline = parser::parse(&args.program)?;
+    if args.print_man {
+        io::stdout().write_all(MAN_PAGE)?;
+        return Ok(());
+    }
+    if let Some(directory) = args.install_man.as_ref() {
+        install_man_page(directory.as_deref())?;
+        return Ok(());
+    }
+
+    let program = args
+        .program
+        .as_deref()
+        .expect("clap requires PROGRAM unless a manual option is present");
+
+    let mut base_pipeline = parser::parse(program)?;
 
     // Implicit Awk line-splitting: a program beginning with `/` operates one
     // line at a time, so prepend a line extractor that feeds the predicates.
-    if args.program.trim_start().starts_with('/') {
+    if program.trim_start().starts_with('/') {
         let mut awk_pipeline = crate::core::Pipeline::new();
         let re = crate::engine::StructuralRegex::compile(r".*\n?")?;
         awk_pipeline.push(Box::new(crate::commands::ExtractCommand { re }));
@@ -66,6 +83,59 @@ fn main() -> anyhow::Result<()> {
         }
     }
 
+    Ok(())
+}
+
+fn default_man_dir() -> anyhow::Result<PathBuf> {
+    if let Some(data_home) = std::env::var_os("XDG_DATA_HOME").filter(|value| !value.is_empty()) {
+        return Ok(PathBuf::from(data_home).join("man/man1"));
+    }
+    if let Some(home) = std::env::var_os("HOME").filter(|value| !value.is_empty()) {
+        return Ok(PathBuf::from(home).join(".local/share/man/man1"));
+    }
+    Err(anyhow::anyhow!(
+        "cannot choose a manual directory: set XDG_DATA_HOME, HOME, or pass --install-man=DIR"
+    ))
+}
+
+fn install_man_page(directory: Option<&Path>) -> anyhow::Result<()> {
+    let directory = match directory {
+        Some(path) => path.to_path_buf(),
+        None => default_man_dir()?,
+    };
+    std::fs::create_dir_all(&directory).map_err(|error| {
+        anyhow::anyhow!(
+            "failed creating manual directory '{}': {}",
+            directory.display(),
+            error
+        )
+    })?;
+
+    let destination = directory.join("se.1");
+    let mut temporary = tempfile::NamedTempFile::new_in(&directory).map_err(|error| {
+        anyhow::anyhow!(
+            "failed creating temporary manual in '{}': {}",
+            directory.display(),
+            error
+        )
+    })?;
+    temporary.write_all(MAN_PAGE)?;
+    temporary.as_file().sync_all()?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        temporary
+            .as_file()
+            .set_permissions(std::fs::Permissions::from_mode(0o644))?;
+    }
+    temporary.persist(&destination).map_err(|error| {
+        anyhow::anyhow!(
+            "failed installing manual '{}': {}",
+            destination.display(),
+            error
+        )
+    })?;
+    println!("{}", destination.display());
     Ok(())
 }
 

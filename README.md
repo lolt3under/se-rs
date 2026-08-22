@@ -7,6 +7,8 @@ views instead of forcing every job through a line-oriented pattern space.
 [![License: BSD 3-Clause](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg)](LICENSE)
 [![Rust 1.85+](https://img.shields.io/badge/rust-1.85%2B-orange.svg)](Cargo.toml)
 
+Developer: [xer0x.in](https://xer0x.in)
+
 The command language comes from Rob Pike's structural regular expressions:
 select a shape, narrow or widen it, then print or change it. A line is just one
 possible shape. The same pipeline can work on words, quoted strings, balanced
@@ -52,6 +54,7 @@ Published releases can be installed from crates.io:
 
 ```sh
 cargo install se-rs
+se --install-man
 ```
 
 On systems with Homebrew:
@@ -70,8 +73,10 @@ install -Dm755 target/release/se "$HOME/.local/bin/se"
 ```
 
 Use `sudo install -Dm755 target/release/se /usr/local/bin/se` for a system-wide
-installation. Linux and macOS support normal editing. The `-w` watch option uses
-kqueue and currently works only on macOS.
+installation. Install the manual from a checkout with
+`install -Dm644 man/se.1 "$HOME/.local/share/man/man1/se.1"`. Linux and macOS
+support normal editing. The `-w` watch option uses kqueue and currently works
+only on macOS.
 
 ## Synopsis
 
@@ -90,6 +95,8 @@ Otherwise the first view is the complete input.
 | `-n` | Accepted for sed compatibility. `se` never prints implicitly. |
 | `-E` | Accepted for compatibility. Extended syntax is already the default. |
 | `-w` | Re-run when a file changes. macOS only. |
+| `--print-man` | Write the bundled `se(1)` source to standard output. |
+| `--install-man[=DIR]` | Install `se(1)` for the current user or under `DIR`. |
 | `--` | End option parsing. Required when `PROGRAM` starts with `-`. |
 
 The shortest useful command is `/pattern/`, which prints matching lines. The
@@ -136,10 +143,10 @@ GitHub Wiki.
 - [Performance notes](docs/performance.md) give the benchmark rig, commands,
   results, and limitations.
 - [Implementation status](docs/status.md) separates finished work from plans.
-- [Public release checklist](docs/release-checklist.md) covers the clean
-  repository import, GitHub settings, tags, artifacts, and checksums.
 - [Maintainer release procedure](docs/releasing.md) documents crates.io,
   GitHub Release, and Homebrew publication from `main`.
+- [`se(1)`](man/se.1) is the installed command reference. It includes the
+  command language and a compact grep, ripgrep, sed, and awk cookbook.
 
 ## Tests
 

@@ -41,8 +41,9 @@ NUL bytes and non-ASCII text. Those cases have caused real differences between
 Unix text tools.
 
 Examples added to `README.md` or `docs/` need a `<!-- tested: ID -->` marker and
-a matching case in `tests/documentation.rs`. The marker check prevents the
-cookbook from drifting away from the binary.
+a matching case in `tests/documentation.rs`. Examples in `man/se.1` use
+`.\" tested: ID`. The marker check prevents the manuals from drifting away from
+the binary.
 
 ## Compatibility changes
 
