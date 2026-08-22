@@ -1,6 +1,6 @@
 //! End-to-end tests driving the compiled `se` binary over stdin / files.
 
-use std::io::Write;
+use std::io::{ErrorKind, Write};
 use std::process::{Command, Stdio};
 
 /// Run `se ARGS` feeding `stdin`, returning `(stdout, stderr, exit_code)`.
@@ -12,12 +12,13 @@ fn run(args: &[&str], stdin: &str) -> (String, String, i32) {
         .stderr(Stdio::piped())
         .spawn()
         .expect("spawn se");
-    child
-        .stdin
-        .take()
-        .unwrap()
-        .write_all(stdin.as_bytes())
-        .unwrap();
+    if let Err(error) = child.stdin.take().unwrap().write_all(stdin.as_bytes()) {
+        assert_eq!(
+            error.kind(),
+            ErrorKind::BrokenPipe,
+            "failed to write test input"
+        );
+    }
     let out = child.wait_with_output().unwrap();
     (
         String::from_utf8_lossy(&out.stdout).into_owned(),
